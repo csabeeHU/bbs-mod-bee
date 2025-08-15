@@ -1,5 +1,6 @@
 package mchorse.bbs_mod;
 
+import mchorse.bbs_mod.ai.config.AISettings;
 import mchorse.bbs_mod.settings.SettingsBuilder;
 import mchorse.bbs_mod.settings.values.ValueBoolean;
 import mchorse.bbs_mod.settings.values.ValueColors;
@@ -221,5 +222,8 @@ public class BBSSettings
         audioWaveformHeight = builder.getInt("waveform_height", 24, 10, 40);
         audioWaveformFilename = builder.getBoolean("waveform_filename", false);
         audioWaveformTime = builder.getBoolean("waveform_time", false);
+        
+        /* AI Settings */
+        AISettings.register(builder);
     }
 }

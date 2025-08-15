@@ -25,6 +25,10 @@ public class UIKeys
     public static final IKey ACTIONS_BLOCK_PROGRESS = L10n.lang("bbs.ui.actions.block.progress");
     public static final IKey ACTIONS_BLOCK_STATE = L10n.lang("bbs.ui.actions.block.state");
     public static final IKey ACTIONS_CHAT_MESSAGE = L10n.lang("bbs.ui.actions.chat.message");
+    public static final IKey AI_ASSISTANT_TITLE = L10n.lang("bbs.ui.ai.title");
+    public static final IKey AI_ASSISTANT_CHAT = L10n.lang("bbs.ui.ai.chat");
+    public static final IKey AI_ASSISTANT_SETTINGS = L10n.lang("bbs.ui.ai.settings");
+    public static final IKey AI_ASSISTANT_TEST = L10n.lang("bbs.ui.ai.test");
     public static final IKey ACTIONS_COMMAND_COMMAND = L10n.lang("bbs.ui.actions.command.command");
     public static final IKey ACTIONS_FORM_TRIGGER_PICK = L10n.lang("bbs.ui.actions.form_trigger.pick");
     public static final IKey ACTIONS_FREQUENCY = L10n.lang("bbs.ui.actions.frequency");

@@ -1,6 +1,7 @@
 package mchorse.bbs_mod;
 
 import mchorse.bbs_mod.actions.types.FormTriggerClientActionClip;
+import mchorse.bbs_mod.ai.AIManager;
 import mchorse.bbs_mod.audio.SoundManager;
 import mchorse.bbs_mod.camera.clips.ClipFactoryData;
 import mchorse.bbs_mod.camera.clips.misc.AudioClientClip;
@@ -91,6 +92,7 @@ public class BBSModClient implements ClientModInitializer
     private static EntitySelectors selectors;
 
     private static ParticleManager particles;
+    private static AIManager aiManager;
 
     private static KeyBinding keyDashboard;
     private static KeyBinding keyItemEditor;
@@ -162,6 +164,11 @@ public class BBSModClient implements ClientModInitializer
     public static ParticleManager getParticles()
     {
         return particles;
+    }
+
+    public static AIManager getAIManager()
+    {
+        return aiManager;
     }
 
     public static CameraController getCameraController()
@@ -283,6 +290,7 @@ public class BBSModClient implements ClientModInitializer
         File parentFile = BBSMod.getSettingsFolder().getParentFile();
 
         particles = new ParticleManager(() -> new File(BBSMod.getAssetsFolder(), "particles"));
+        aiManager = AIManager.getInstance();
 
         models = new ModelManager(provider);
         formCategories = new FormCategories();

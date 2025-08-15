@@ -3,6 +3,7 @@ package mchorse.bbs_mod.ui.dashboard;
 import com.mojang.blaze3d.systems.RenderSystem;
 import mchorse.bbs_mod.BBSModClient;
 import mchorse.bbs_mod.BBSSettings;
+import mchorse.bbs_mod.ai.ui.UIAIDashboardPanel;
 import mchorse.bbs_mod.camera.Camera;
 import mchorse.bbs_mod.camera.OrbitCamera;
 import mchorse.bbs_mod.camera.controller.OrbitCameraController;
@@ -244,6 +245,7 @@ public class UIDashboard extends UIBaseMenu
         this.panels.registerPanel(new UIParticleSchemePanel(this), UIKeys.PANELS_PARTICLES, Icons.PARTICLE).marginLeft(10);
         this.panels.registerPanel(new UITextureManagerPanel(this), UIKeys.TEXTURES_TOOLTIP, Icons.MATERIAL);
         this.panels.registerPanel(new UIAudioEditorPanel(this), UIKeys.AUDIO_TITLE, Icons.SOUND);
+        this.panels.registerPanel(new UIAIDashboardPanel(this), UIKeys.AI_ASSISTANT_TITLE, Icons.PROCESSOR);
         this.panels.registerPanel(new UIGraphPanel(this), UIKeys.GRAPH_TOOLTIP, Icons.GRAPH);
 
         if (FabricLoader.getInstance().isDevelopmentEnvironment())
