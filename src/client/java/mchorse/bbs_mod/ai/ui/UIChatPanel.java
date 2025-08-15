@@ -5,6 +5,7 @@ import mchorse.bbs_mod.ai.AIManager;
 import mchorse.bbs_mod.ai.AIRequest;
 import mchorse.bbs_mod.ai.AIResponse;
 import mchorse.bbs_mod.ai.config.AISettings;
+import mchorse.bbs_mod.ai.context.BBSContextDetector;
 import mchorse.bbs_mod.l10n.keys.IKey;
 import mchorse.bbs_mod.ui.framework.UIContext;
 import mchorse.bbs_mod.ui.framework.elements.UIElement;
@@ -25,9 +26,11 @@ import java.util.List;
 public class UIChatPanel extends UIElement
 {
     public UIScrollView chatHistory;
+    public UIScrollView quickPrompts;
     public UITextbox messageInput;
     public UIButton sendButton;
     public UIButton clearButton;
+    public UILabel contextLabel;
     
     private List<ChatMessage> messages;
     private boolean isProcessing = false;
@@ -39,18 +42,30 @@ public class UIChatPanel extends UIElement
         this.chatHistory = new UIScrollView(ScrollDirection.VERTICAL);
         this.chatHistory.scroll.scrollSpeed = 51;
         
+        this.quickPrompts = new UIScrollView(ScrollDirection.HORIZONTAL);
+        this.quickPrompts.scroll.scrollSpeed = 51;
+        this.quickPrompts.scroll.cancelScrolling().noScrollbar();
+        
         this.messageInput = new UITextbox(1000, this::sendMessage);
         this.messageInput.placeholder = "Ask the AI assistant for help with your animation...";
         
         this.sendButton = new UIButton(IKey.raw("Send"), this::sendCurrentMessage);
         this.clearButton = new UIButton(IKey.raw("Clear"), this::clearChat);
         
-        this.chatHistory.relative(this).x(10).y(10).w(1F, -20).h(1F, -60);
+        this.contextLabel = UI.label(IKey.raw("Context: " + BBSContextDetector.getContextDescription()));
+        this.contextLabel.color(0xFF888888);
+        
+        // Layout
+        this.contextLabel.relative(this).x(10).y(5).w(1F, -20).h(12);
+        this.quickPrompts.relative(this).x(10).y(20).w(1F, -20).h(25);
+        this.chatHistory.relative(this).x(10).y(50).w(1F, -20).h(1F, -100);
         this.messageInput.relative(this).x(10).y(1F, -45).w(1F, -120).h(20);
         this.sendButton.relative(this).x(1F, -100).y(1F, -45).w(40).h(20);
         this.clearButton.relative(this).x(1F, -55).y(1F, -45).w(40).h(20);
         
-        this.add(this.chatHistory, this.messageInput, this.sendButton, this.clearButton);
+        this.add(this.contextLabel, this.quickPrompts, this.chatHistory, this.messageInput, this.sendButton, this.clearButton);
+        
+        this.setupQuickPrompts();
         
         // Add welcome message
         this.addMessage(new ChatMessage(
@@ -66,6 +81,31 @@ public class UIChatPanel extends UIElement
         ));
         
         this.updateChatDisplay();
+    }
+
+    private void setupQuickPrompts()
+    {
+        String[] prompts = BBSContextDetector.getContextualQuickPrompts();
+        
+        this.quickPrompts.removeAll();
+        
+        for (String prompt : prompts)
+        {
+            if (prompt.length() > 50)
+            {
+                prompt = prompt.substring(0, 47) + "...";
+            }
+            
+            UIButton promptButton = new UIButton(IKey.raw(prompt), (button) -> {
+                this.messageInput.setText(prompt);
+                this.sendCurrentMessage(button);
+            });
+            promptButton.h(20).background(false).textColor(0xFF4A90E2, true);
+            
+            this.quickPrompts.add(promptButton);
+        }
+        
+        this.quickPrompts.row(5).resize();
     }
 
     private void sendMessage(String text)
@@ -210,9 +250,20 @@ public class UIChatPanel extends UIElement
 
     private AIContext getCurrentContext()
     {
-        // TODO: Get actual context from current BBS state
-        // For now, return general context
-        return AIContext.general();
+        // Use the context detector to get current BBS state
+        return BBSContextDetector.detectCurrentContext();
+    }
+
+    @Override
+    public void resize()
+    {
+        super.resize();
+        
+        // Update context label when resizing (in case context changed)
+        this.contextLabel.label = IKey.raw("Context: " + BBSContextDetector.getContextDescription());
+        
+        // Refresh quick prompts
+        this.setupQuickPrompts();
     }
 
     /**
