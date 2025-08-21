@@ -24,5 +24,10 @@
     "key.bbs.zoom": "Zoom (BBS gun)",
     "category.bbs.main": "BBS mod",
 
+    "item.bbs.honey_wand": "Honey Wand",
+    "item.bbs.pollen": "Magical Pollen",
+
+    "form.bbs.bee": "Bee Form",
+
     "gamerule.bbsEditing": "BBS mod's editing permission"
 }

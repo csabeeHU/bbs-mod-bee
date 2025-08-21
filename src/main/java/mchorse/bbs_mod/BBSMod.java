@@ -48,6 +48,7 @@ import mchorse.bbs_mod.entity.GunProjectileEntity;
 import mchorse.bbs_mod.film.FilmManager;
 import mchorse.bbs_mod.forms.FormArchitect;
 import mchorse.bbs_mod.forms.forms.AnchorForm;
+import mchorse.bbs_mod.forms.forms.BeeForm;
 import mchorse.bbs_mod.forms.forms.BillboardForm;
 import mchorse.bbs_mod.forms.forms.BlockForm;
 import mchorse.bbs_mod.forms.forms.ExtrudedForm;
@@ -60,6 +61,8 @@ import mchorse.bbs_mod.forms.forms.ParticleForm;
 import mchorse.bbs_mod.forms.forms.TrailForm;
 import mchorse.bbs_mod.forms.forms.VanillaParticleForm;
 import mchorse.bbs_mod.items.GunItem;
+import mchorse.bbs_mod.items.HoneyWandItem;
+import mchorse.bbs_mod.items.PollenItem;
 import mchorse.bbs_mod.morphing.Morph;
 import mchorse.bbs_mod.network.ServerNetwork;
 import mchorse.bbs_mod.resources.AssetProvider;
@@ -181,6 +184,8 @@ public class BBSMod implements ModInitializer
 
     public static final BlockItem MODEL_BLOCK_ITEM = new BlockItem(MODEL_BLOCK, new Item.Settings());
     public static final GunItem GUN_ITEM = new GunItem(new Item.Settings().maxCount(1));
+    public static final HoneyWandItem HONEY_WAND_ITEM = new HoneyWandItem(new Item.Settings().maxCount(1));
+    public static final PollenItem POLLEN_ITEM = new PollenItem(new Item.Settings().food(net.minecraft.item.FoodComponent.Builder.create().hunger(2).saturationModifier(0.3F).build()));
     public static final BlockItem CHROMA_RED_BLOCK_ITEM = new BlockItem(CHROMA_RED_BLOCK, new Item.Settings());
     public static final BlockItem CHROMA_GREEN_BLOCK_ITEM = new BlockItem(CHROMA_GREEN_BLOCK, new Item.Settings());
     public static final BlockItem CHROMA_BLUE_BLOCK_ITEM = new BlockItem(CHROMA_BLUE_BLOCK, new Item.Settings());
@@ -213,6 +218,8 @@ public class BBSMod implements ModInitializer
             entries.add(CHROMA_BLACK_BLOCK_ITEM);
             entries.add(CHROMA_WHITE_BLOCK_ITEM);
             entries.add(new ItemStack(GUN_ITEM));
+            entries.add(new ItemStack(HONEY_WAND_ITEM));
+            entries.add(new ItemStack(POLLEN_ITEM));
         })
         .build();
 
@@ -403,7 +410,8 @@ public class BBSMod implements ModInitializer
             .register(Link.bbs("mob"), MobForm.class, null)
             .register(Link.bbs("vanilla_particles"), VanillaParticleForm.class, null)
             .register(Link.bbs("trail"), TrailForm.class, null)
-            .register(Link.bbs("framebuffer"), FramebufferForm.class, null);
+            .register(Link.bbs("framebuffer"), FramebufferForm.class, null)
+            .register(Link.bbs("bee"), BeeForm.class, null);
 
         films = new FilmManager(() -> new File(worldFolder, "bbs/films"));
 
@@ -479,6 +487,8 @@ public class BBSMod implements ModInitializer
 
         Registry.register(Registries.ITEM, new Identifier(MOD_ID, "model"), MODEL_BLOCK_ITEM);
         Registry.register(Registries.ITEM, new Identifier(MOD_ID, "gun"), GUN_ITEM);
+        Registry.register(Registries.ITEM, new Identifier(MOD_ID, "honey_wand"), HONEY_WAND_ITEM);
+        Registry.register(Registries.ITEM, new Identifier(MOD_ID, "pollen"), POLLEN_ITEM);
         Registry.register(Registries.ITEM, new Identifier(MOD_ID, "chroma_red"), CHROMA_RED_BLOCK_ITEM);
         Registry.register(Registries.ITEM, new Identifier(MOD_ID, "chroma_green"), CHROMA_GREEN_BLOCK_ITEM);
         Registry.register(Registries.ITEM, new Identifier(MOD_ID, "chroma_blue"), CHROMA_BLUE_BLOCK_ITEM);

@@ -64,6 +64,7 @@ public class BBSCommands
         registerCheatsCommand(bbs, environment);
         registerBoomCommand(bbs, environment, hasPermissions);
         registerStructureSaveCommand(bbs, environment, hasPermissions);
+        registerBeeCommands(bbs, environment, hasPermissions);
 
         dispatcher.register(bbs);
     }
@@ -487,5 +488,292 @@ public class BBSCommands
         {}
 
         return 0;
+    }
+
+    /**
+     * Register bee-related commands for the BBS mod bee extension
+     */
+    private static void registerBeeCommands(LiteralArgumentBuilder<ServerCommandSource> bbs, CommandManager.RegistrationEnvironment environment, Predicate<ServerCommandSource> hasPermissions)
+    {
+        LiteralArgumentBuilder<ServerCommandSource> bee = CommandManager.literal("bee");
+        
+        // /bbs bee buzz [player] - Make player buzz like a bee
+        LiteralArgumentBuilder<ServerCommandSource> buzz = CommandManager.literal("buzz");
+        RequiredArgumentBuilder<ServerCommandSource, EntitySelector> buzzTarget = CommandManager.argument("target", EntityArgumentType.players());
+        buzz.executes(BBSCommands::buzzSelf)
+            .then(buzzTarget.executes(BBSCommands::buzzPlayer));
+        
+        // /bbs bee swarm [players] - Group players into a bee swarm formation
+        LiteralArgumentBuilder<ServerCommandSource> swarm = CommandManager.literal("swarm");
+        RequiredArgumentBuilder<ServerCommandSource, EntitySelector> swarmTargets = CommandManager.argument("targets", EntityArgumentType.players());
+        swarm.then(swarmTargets.executes(BBSCommands::createSwarm));
+        
+        // /bbs bee pollinate [radius] - Create pollen effects around flowers
+        LiteralArgumentBuilder<ServerCommandSource> pollinate = CommandManager.literal("pollinate");
+        RequiredArgumentBuilder<ServerCommandSource, Float> radius = CommandManager.argument("radius", FloatArgumentType.floatArg(1.0F, 20.0F));
+        pollinate.executes(BBSCommands::pollinateNear)
+                 .then(radius.executes(BBSCommands::pollinateWithRadius));
+        
+        // /bbs bee transform [player] [bee_type] - Transform player into specific bee type
+        LiteralArgumentBuilder<ServerCommandSource> transform = CommandManager.literal("transform");
+        RequiredArgumentBuilder<ServerCommandSource, EntitySelector> transformTarget = CommandManager.argument("target", EntityArgumentType.players());
+        RequiredArgumentBuilder<ServerCommandSource, String> beeType = CommandManager.argument("bee_type", StringArgumentType.word());
+        transform.then(transformTarget
+                .executes(BBSCommands::transformToBeeDefault)
+                .then(beeType.executes(BBSCommands::transformToBeeType)));
+
+        bee.then(buzz.requires(hasPermissions))
+           .then(swarm.requires(hasPermissions))
+           .then(pollinate.requires(hasPermissions))
+           .then(transform.requires(hasPermissions));
+        
+        bbs.then(bee);
+    }
+
+    /**
+     * /bbs bee buzz - Make the command sender buzz like a bee
+     */
+    private static int buzzSelf(CommandContext<ServerCommandSource> source) throws CommandSyntaxException
+    {
+        ServerCommandSource commandSource = source.getSource();
+        if (commandSource.getEntity() instanceof ServerPlayerEntity player)
+        {
+            return createBuzzEffect(player);
+        }
+        return 0;
+    }
+
+    /**
+     * /bbs bee buzz [player] - Make target player buzz like a bee
+     */
+    private static int buzzPlayer(CommandContext<ServerCommandSource> source) throws CommandSyntaxException
+    {
+        Collection<ServerPlayerEntity> players = EntityArgumentType.getPlayers(source, "target");
+        int count = 0;
+        
+        for (ServerPlayerEntity player : players)
+        {
+            count += createBuzzEffect(player);
+        }
+        
+        return count;
+    }
+
+    private static int createBuzzEffect(ServerPlayerEntity player)
+    {
+        World world = player.getWorld();
+        
+        // Create buzzing particle effect around player
+        for (int i = 0; i < 30; i++)
+        {
+            double angle = (i * Math.PI * 2) / 30;
+            double radius = 1.5;
+            double x = player.getX() + Math.cos(angle) * radius;
+            double y = player.getY() + 1.0 + Math.sin(i * 0.3) * 0.3;
+            double z = player.getZ() + Math.sin(angle) * radius;
+            
+            world.addParticle(net.minecraft.particle.ParticleTypes.FALLING_NECTAR, x, y, z, 0, 0.05, 0);
+        }
+        
+        // Play bee buzzing sound
+        world.playSound(null, player.getBlockPos(), net.minecraft.sound.SoundEvents.ENTITY_BEE_LOOP, 
+                       net.minecraft.sound.SoundCategory.PLAYERS, 1.0F, 1.0F);
+        
+        player.sendMessage(net.minecraft.text.Text.literal("§e*Buzz buzz* §6You're buzzing like a bee!"), false);
+        
+        return 1;
+    }
+
+    /**
+     * /bbs bee swarm [players] - Arrange players in a bee swarm formation
+     */
+    private static int createSwarm(CommandContext<ServerCommandSource> source) throws CommandSyntaxException
+    {
+        Collection<ServerPlayerEntity> players = EntityArgumentType.getPlayers(source, "targets");
+        
+        if (players.size() < 2)
+        {
+            source.getSource().sendMessage(net.minecraft.text.Text.literal("§cNeed at least 2 players to create a swarm!"));
+            return 0;
+        }
+        
+        ServerPlayerEntity leader = players.iterator().next();
+        Vec3d centerPos = leader.getPos();
+        
+        int index = 0;
+        for (ServerPlayerEntity player : players)
+        {
+            if (index == 0)
+            {
+                // Leader stays in place
+                player.sendMessage(net.minecraft.text.Text.literal("§eYou are now the swarm leader! §6Buzz buzz!"), false);
+            }
+            else
+            {
+                // Arrange other players in a circle around the leader
+                double angle = (index * Math.PI * 2) / (players.size() - 1);
+                double radius = 3.0;
+                double x = centerPos.x + Math.cos(angle) * radius;
+                double z = centerPos.z + Math.sin(angle) * radius;
+                
+                player.teleport(x, centerPos.y, z);
+                player.sendMessage(net.minecraft.text.Text.literal("§eYou've joined the bee swarm! §6Follow your leader!"), false);
+            }
+            
+            // Create buzz effect for all players
+            createBuzzEffect(player);
+            index++;
+        }
+        
+        return players.size();
+    }
+
+    /**
+     * /bbs bee pollinate - Create pollen effects around nearby flowers (default radius)
+     */
+    private static int pollinateNear(CommandContext<ServerCommandSource> source)
+    {
+        return pollinateArea(source, 10.0F);
+    }
+
+    /**
+     * /bbs bee pollinate [radius] - Create pollen effects around flowers in specified radius
+     */
+    private static int pollinateWithRadius(CommandContext<ServerCommandSource> source)
+    {
+        float radius = FloatArgumentType.getFloat(source, "radius");
+        return pollinateArea(source, radius);
+    }
+
+    private static int pollinateArea(CommandContext<ServerCommandSource> source, float radius)
+    {
+        ServerCommandSource commandSource = source.getSource();
+        World world = commandSource.getWorld();
+        Vec3d pos = commandSource.getPosition();
+        
+        int pollinatedFlowers = 0;
+        int radiusInt = (int) radius;
+        
+        for (int dx = -radiusInt; dx <= radiusInt; dx++)
+        {
+            for (int dy = -3; dy <= 3; dy++)
+            {
+                for (int dz = -radiusInt; dz <= radiusInt; dz++)
+                {
+                    BlockPos blockPos = new BlockPos((int)pos.x + dx, (int)pos.y + dy, (int)pos.z + dz);
+                    String blockName = world.getBlockState(blockPos).getBlock().getTranslationKey();
+                    
+                    if (blockName.contains("flower") || blockName.contains("rose") || 
+                        blockName.contains("tulip") || blockName.contains("dandelion") || 
+                        blockName.contains("poppy"))
+                    {
+                        // Create pollen particles above flowers
+                        for (int i = 0; i < 5; i++)
+                        {
+                            world.addParticle(net.minecraft.particle.ParticleTypes.COMPOSTER, 
+                                            blockPos.getX() + 0.5 + (world.random.nextDouble() - 0.5) * 0.5, 
+                                            blockPos.getY() + 1.2 + world.random.nextDouble() * 0.3, 
+                                            blockPos.getZ() + 0.5 + (world.random.nextDouble() - 0.5) * 0.5, 
+                                            0, 0.1, 0);
+                        }
+                        pollinatedFlowers++;
+                    }
+                }
+            }
+        }
+        
+        if (pollinatedFlowers > 0)
+        {
+            // Play pollination sound
+            world.playSound(null, new BlockPos((int)pos.x, (int)pos.y, (int)pos.z), 
+                           net.minecraft.sound.SoundEvents.ENTITY_BEE_POLLINATE, 
+                           net.minecraft.sound.SoundCategory.BLOCKS, 1.0F, 1.0F);
+            
+            commandSource.sendMessage(net.minecraft.text.Text.literal("§ePollinated " + pollinatedFlowers + " flowers! §6The bees are happy!"));
+        }
+        else
+        {
+            commandSource.sendMessage(net.minecraft.text.Text.literal("§cNo flowers found in the area to pollinate."));
+        }
+        
+        return pollinatedFlowers;
+    }
+
+    /**
+     * /bbs bee transform [player] - Transform player into default honey bee
+     */
+    private static int transformToBeeDefault(CommandContext<ServerCommandSource> source) throws CommandSyntaxException
+    {
+        return transformPlayerToBee(source, "honey");
+    }
+
+    /**
+     * /bbs bee transform [player] [bee_type] - Transform player into specific bee type
+     */
+    private static int transformToBeeType(CommandContext<ServerCommandSource> source) throws CommandSyntaxException
+    {
+        String beeType = StringArgumentType.getString(source, "bee_type");
+        return transformPlayerToBee(source, beeType);
+    }
+
+    private static int transformPlayerToBee(CommandContext<ServerCommandSource> source, String beeType) throws CommandSyntaxException
+    {
+        Collection<ServerPlayerEntity> players = EntityArgumentType.getPlayers(source, "target");
+        int count = 0;
+        
+        for (ServerPlayerEntity player : players)
+        {
+            try
+            {
+                mchorse.bbs_mod.forms.forms.BeeForm beeForm = new mchorse.bbs_mod.forms.forms.BeeForm();
+                
+                // Configure bee based on type
+                switch (beeType.toLowerCase())
+                {
+                    case "honey":
+                        beeForm.texture.set(mchorse.bbs_mod.resources.Link.assets("textures/bee/honey.png"));
+                        beeForm.beeType.set("honey");
+                        beeForm.wingSpeed.set(1.0F);
+                        beeForm.size.set(1.0F);
+                        beeForm.stripeColor.set(mchorse.bbs_mod.utils.colors.Color.create(255, 255, 0));
+                        break;
+                    case "bumble":
+                        beeForm.texture.set(mchorse.bbs_mod.resources.Link.assets("textures/bee/bumble.png"));
+                        beeForm.beeType.set("bumble");
+                        beeForm.wingSpeed.set(0.8F);
+                        beeForm.size.set(1.2F);
+                        beeForm.stripeColor.set(mchorse.bbs_mod.utils.colors.Color.create(255, 200, 0));
+                        break;
+                    case "carpenter":
+                        beeForm.texture.set(mchorse.bbs_mod.resources.Link.assets("textures/bee/carpenter.png"));
+                        beeForm.beeType.set("carpenter");
+                        beeForm.wingSpeed.set(1.2F);
+                        beeForm.size.set(0.9F);
+                        beeForm.stripeColor.set(mchorse.bbs_mod.utils.colors.Color.create(139, 69, 19));
+                        break;
+                    default:
+                        // Default to honey bee
+                        beeForm.texture.set(mchorse.bbs_mod.resources.Link.assets("textures/bee/honey.png"));
+                        beeForm.beeType.set("honey");
+                        beeForm.wingSpeed.set(1.0F);
+                        beeForm.size.set(1.0F);
+                        beeForm.stripeColor.set(mchorse.bbs_mod.utils.colors.Color.create(255, 255, 0));
+                        break;
+                }
+                
+                ServerNetwork.sendMorphToTracked(player, beeForm);
+                Morph.getMorph(player).setForm(FormUtils.copy(beeForm));
+                
+                player.sendMessage(net.minecraft.text.Text.literal("§eYou have transformed into a " + beeType + " bee! §6Buzz buzz!"), false);
+                createBuzzEffect(player);
+                count++;
+            }
+            catch (Exception e)
+            {
+                player.sendMessage(net.minecraft.text.Text.literal("§cFailed to transform into bee: " + e.getMessage()), false);
+            }
+        }
+        
+        return count;
     }
 }
